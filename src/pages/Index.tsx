@@ -1,10 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 
@@ -82,52 +79,16 @@ const mockCollections: Collection[] = [
 ];
 
 export default function Index() {
-  const [selectedCollection, setSelectedCollection] = useState<Collection | null>(null);
-  const [isAuthOpen, setIsAuthOpen] = useState(false);
-  const [isRegisterMode, setIsRegisterMode] = useState(false);
-  const [newComment, setNewComment] = useState('');
+  const navigate = useNavigate();
   const [user, setUser] = useState<string | null>(null);
-  const [collections, setCollections] = useState(mockCollections);
+  const [collections] = useState(mockCollections);
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    const formData = new FormData(e.target as HTMLFormElement);
-    const username = formData.get('username') as string;
-    setUser(username);
-    setIsAuthOpen(false);
-  };
+  useEffect(() => {
+    const savedUser = localStorage.getItem('user');
+    setUser(savedUser);
+  }, []);
 
-  const handleRegister = (e: React.FormEvent) => {
-    e.preventDefault();
-    const formData = new FormData(e.target as HTMLFormElement);
-    const username = formData.get('username') as string;
-    setUser(username);
-    setIsAuthOpen(false);
-  };
 
-  const addComment = () => {
-    if (!selectedCollection || !newComment.trim() || !user) return;
-    
-    const comment: Comment = {
-      id: Date.now(),
-      author: user,
-      text: newComment.trim(),
-      date: new Date().toISOString().split('T')[0]
-    };
-
-    setCollections(collections.map(col => 
-      col.id === selectedCollection.id 
-        ? { ...col, comments: [...col.comments, comment] }
-        : col
-    ));
-
-    setSelectedCollection({
-      ...selectedCollection,
-      comments: [...selectedCollection.comments, comment]
-    });
-
-    setNewComment('');
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/10">
@@ -148,65 +109,18 @@ export default function Index() {
               <div className="flex items-center gap-2">
                 <Icon name="User" size={20} />
                 <span className="font-medium">{user}</span>
-                <Button variant="outline" size="sm" onClick={() => setUser(null)}>
+                <Button variant="outline" size="sm" onClick={() => {
+                  localStorage.removeItem('user');
+                  setUser(null);
+                }}>
                   Выйти
                 </Button>
               </div>
             ) : (
-              <Dialog open={isAuthOpen} onOpenChange={setIsAuthOpen}>
-                <DialogTrigger asChild>
-                  <Button className="hover-scale">
-                    <Icon name="LogIn" size={16} className="mr-2" />
-                    Войти
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-md">
-                  <DialogHeader>
-                    <DialogTitle>
-                      {isRegisterMode ? 'Регистрация' : 'Авторизация'}
-                    </DialogTitle>
-                    <DialogDescription>
-                      {isRegisterMode 
-                        ? 'Создайте аккаунт для комментариев' 
-                        : 'Войдите в свой аккаунт'
-                      }
-                    </DialogDescription>
-                  </DialogHeader>
-                  
-                  <form onSubmit={isRegisterMode ? handleRegister : handleLogin} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="username">Имя пользователя</Label>
-                      <Input id="username" name="username" required />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="password">Пароль</Label>
-                      <Input id="password" name="password" type="password" required />
-                    </div>
-                    {isRegisterMode && (
-                      <div className="space-y-2">
-                        <Label htmlFor="email">Email</Label>
-                        <Input id="email" name="email" type="email" required />
-                      </div>
-                    )}
-                    
-                    <div className="flex flex-col gap-2">
-                      <Button type="submit" className="w-full">
-                        {isRegisterMode ? 'Зарегистрироваться' : 'Войти'}
-                      </Button>
-                      <Button 
-                        type="button" 
-                        variant="ghost" 
-                        onClick={() => setIsRegisterMode(!isRegisterMode)}
-                      >
-                        {isRegisterMode 
-                          ? 'Уже есть аккаунт? Войти' 
-                          : 'Нет аккаунта? Регистрация'
-                        }
-                      </Button>
-                    </div>
-                  </form>
-                </DialogContent>
-              </Dialog>
+              <Button onClick={() => navigate('/auth')} className="hover-scale">
+                <Icon name="LogIn" size={16} className="mr-2" />
+                Войти
+              </Button>
             )}
           </div>
         </div>
@@ -232,7 +146,7 @@ export default function Index() {
               <Card 
                 key={collection.id} 
                 className="anime-card cursor-pointer group"
-                onClick={() => setSelectedCollection(collection)}
+                onClick={() => navigate(`/collection/${collection.id}`)}
               >
                 <div className="relative overflow-hidden rounded-t-lg">
                   <img 
@@ -271,108 +185,7 @@ export default function Index() {
         </div>
       </section>
 
-      {/* Collection Modal */}
-      {selectedCollection && (
-        <Dialog open={!!selectedCollection} onOpenChange={() => setSelectedCollection(null)}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="text-2xl">{selectedCollection.title}</DialogTitle>
-              <DialogDescription>{selectedCollection.description}</DialogDescription>
-            </DialogHeader>
-            
-            <div className="space-y-6">
-              {/* Anime List */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {selectedCollection.animeList.map((anime) => (
-                  <Card key={anime.id} className="hover-scale">
-                    <div className="relative">
-                      <img 
-                        src={anime.image} 
-                        alt={anime.title}
-                        className="w-full h-32 object-cover rounded-t-lg"
-                      />
-                    </div>
-                    <CardContent className="p-4">
-                      <h4 className="font-semibold">{anime.title}</h4>
-                      <div className="flex items-center justify-between mt-2 text-sm text-muted-foreground">
-                        <span>{anime.year}</span>
-                        <div className="flex items-center gap-1">
-                          <Icon name="Star" size={14} className="text-yellow-500" />
-                          <span>{anime.rating}</span>
-                        </div>
-                      </div>
-                      <Badge variant="secondary" className="mt-2">
-                        {anime.genre}
-                      </Badge>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
 
-              {/* Comments Section */}
-              <div className="border-t pt-6">
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <Icon name="MessageCircle" size={20} />
-                  Комментарии ({selectedCollection.comments.length})
-                </h3>
-                
-                {/* Add Comment */}
-                {user ? (
-                  <div className="mb-6 space-y-3">
-                    <Textarea
-                      placeholder="Напишите ваш комментарий..."
-                      value={newComment}
-                      onChange={(e) => setNewComment(e.target.value)}
-                      className="min-h-[80px]"
-                    />
-                    <Button onClick={addComment} disabled={!newComment.trim()}>
-                      <Icon name="Send" size={16} className="mr-2" />
-                      Отправить
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="mb-6 p-4 bg-muted rounded-lg text-center">
-                    <p className="text-muted-foreground">
-                      <Button 
-                        variant="link" 
-                        className="p-0 h-auto font-semibold"
-                        onClick={() => setIsAuthOpen(true)}
-                      >
-                        Войдите
-                      </Button>
-                      {' '}чтобы оставить комментарий
-                    </p>
-                  </div>
-                )}
-
-                {/* Comments List */}
-                <div className="space-y-4">
-                  {selectedCollection.comments.length === 0 ? (
-                    <p className="text-center text-muted-foreground py-8">
-                      Пока нет комментариев. Будьте первым!
-                    </p>
-                  ) : (
-                    selectedCollection.comments.map((comment) => (
-                      <div key={comment.id} className="border rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <Icon name="User" size={16} />
-                            <span className="font-medium">{comment.author}</span>
-                          </div>
-                          <span className="text-sm text-muted-foreground">
-                            {new Date(comment.date).toLocaleDateString('ru-RU')}
-                          </span>
-                        </div>
-                        <p className="text-sm">{comment.text}</p>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
     </div>
   );
 }
