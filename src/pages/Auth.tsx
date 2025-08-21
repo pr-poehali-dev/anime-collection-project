@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,8 @@ import Icon from '@/components/ui/icon';
 export default function Auth() {
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const error = searchParams.get('error');
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,10 +67,13 @@ export default function Auth() {
               {isRegisterMode ? 'Регистрация' : 'Авторизация'}
             </CardTitle>
             <CardDescription>
-              {isRegisterMode 
-                ? 'Создайте аккаунт для участия в обсуждениях' 
-                : 'Войдите в свой аккаунт'
-              }
+              {error === 'like' ? (
+                <span className="text-destructive">⚠️ Для того чтобы ставить лайки, необходимо авторизоваться</span>
+              ) : (
+                isRegisterMode 
+                  ? 'Создайте аккаунт для участия в обсуждениях' 
+                  : 'Войдите в свой аккаунт'
+              )}
             </CardDescription>
           </CardHeader>
           
