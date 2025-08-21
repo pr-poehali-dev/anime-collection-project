@@ -82,7 +82,6 @@ const mockCollections: Collection[] = [
 export default function Collection() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const navigate = useNavigate();
   const [collection, setCollection] = useState<Collection | null>(null);
   const [newComment, setNewComment] = useState('');
   const [user, setUser] = useState<string | null>(null);
